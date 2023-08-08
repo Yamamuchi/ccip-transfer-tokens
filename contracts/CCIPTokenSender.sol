@@ -15,6 +15,7 @@ contract CCIPTokenSender is OwnerIsCreator {
     
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); 
     error DestinationChainNotWhitelisted(uint64 destinationChainSelector);
+    error NothingToWithdraw();
     
     event TokensTransferred(
         bytes32 indexed messageId, // The unique ID of the message.
@@ -102,5 +103,16 @@ contract CCIPTokenSender is OwnerIsCreator {
             address(linkToken),
             fees
         );   
+    }
+    
+    function withdrawToken(
+        address _beneficiary,
+        address _token
+    ) public onlyOwner {
+        uint256 amount = IERC20(_token).balanceOf(address(this));
+        
+        if (amount == 0) revert NothingToWithdraw();
+        
+        IERC20(_token).transfer(_beneficiary, amount);
     }
 }
