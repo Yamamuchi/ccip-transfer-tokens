@@ -14,7 +14,7 @@ async function main() {
   await run("compile");
 
   const ccipTokenSenderFactory = await ethers.getContractFactory("CCIPTokenSender");
-  const ccipTokenSender = await ccipTokenSenderFactory.deploy(fujiLinkAddress, fujiRouterAddress);
+  const ccipTokenSender = await ccipTokenSenderFactory.deploy(fujiRouterAddress, fujiLinkAddress);
 
   await ccipTokenSender.deployed();
 
