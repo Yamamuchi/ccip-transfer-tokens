@@ -25,18 +25,57 @@ contract MyNFT is ERC721URIStorage, OwnerIsCreator {
 contract CCIPTokenAndDataReceiver is CCIPReceiver, OwnerIsCreator {
     MyNFT public nft;
     uint256 price;
-    
+
+    mapping(uint64 => bool) public whitelistedSourceChains;
+    mapping(address => bool) public whitelistedSenders;
+
     event MintCallSuccessfull();
-    
+
+    error SourceChainNotWhitelisted(uint64 sourceChainSelector);
+    error SenderNotWhitelisted(address sender);
+
+    modifier onlyWhitelistedSourceChain(uint64 _sourceChainSelector) {
+        if (!whitelistedSourceChains[_sourceChainSelector])
+            revert SourceChainNotWhitelisted(_sourceChainSelector);
+        _;
+    }
+
+    modifier onlyWhitelistedSenders(address _sender) {
+        if (!whitelistedSenders[_sender]) revert SenderNotWhitelisted(_sender);
+        _;
+    }
+
     constructor(address router, uint256 _price) CCIPReceiver(router) {
         nft = new MyNFT();
         price = _price;
     }
-    
+
+    function whitelistSourceChain(
+        uint64 _sourceChainSelector
+    ) external onlyOwner {
+        whitelistedSourceChains[_sourceChainSelector] = true;
+    }
+
+    function denylistSourceChain(
+        uint64 _sourceChainSelector
+    ) external onlyOwner {
+        whitelistedSourceChains[_sourceChainSelector] = false;
+    }
+
+    function whitelistSender(address _sender) external onlyOwner {
+        whitelistedSenders[_sender] = true;
+    }
+
+    function denySender(address _sender) external onlyOwner {
+        whitelistedSenders[_sender] = false;
+    }
+
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) 
-        internal 
+        internal
+        onlyWhitelistedSourceChain(message.sourceChainSelector)
+        onlyWhitelistedSenders(abi.decode(message.sender, (address))) 
         override 
     {
         require(message.destTokenAmounts[0].amount >= price, "Not enough CCIP-BnM for mint");
